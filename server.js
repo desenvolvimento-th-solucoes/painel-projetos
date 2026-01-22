@@ -1,4 +1,4 @@
-
+const bcrypt = require ('bcrypt');
 const express = require('express');
 const mysql = require('mysql2/promise');
 const cors = require('cors');
@@ -44,12 +44,22 @@ const parseJSON = (rows, ...fields) => rows.map(r => {
 app.post('/api/login', async (req, res) => {
     try {
         const { email, password } = req.body;
-        const [rows] = await pool.query('SELECT * FROM users WHERE email = ? AND password = ?', [email, password]);
+        const [rows] = await pool.query('SELECT * FROM users WHERE email = ? ' [email]);
+        const userDB = rows[0];
+        const passwordMatch = await bcrypt.compare(
+            password,
+            userDB.password
+        );
         if (rows.length) {
-            const user = parseJSON(rows, 'accessibleInstitutions')[0];
+            if (passwordMatch){
+                const user = parseJSON(rows, 'accessibleInstitutions')[0];
             res.json(user);
-        } else {
+            return;
+            }
             res.status(401).json({ error: 'Credenciais inválidas' });
+            
+        } else {
+            res.status(401).json({ error: 'Login ou senha incorretos' });
         }
     } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -64,9 +74,11 @@ app.get('/api/users', async (req, res) => {
 app.post('/api/users', async (req, res) => {
     try {
         const u = req.body;
+        const password = u.password;
+        const hashedPassword = await bcrypt.hash(password || '123456', 10);
         await pool.query(
             'INSERT INTO users (id, name, email, password, role, avatar, jobTitle, institution, accessibleInstitutions) VALUES (?,?,?,?,?,?,?,?,?)',
-            [u.id, u.name, u.email, u.password || '123456', u.role, u.avatar, u.jobTitle, u.institution, JSON.stringify(u.accessibleInstitutions)]
+            [u.id, u.name, u.email, hashedPassword, u.role, u.avatar, u.jobTitle, u.institution, JSON.stringify(u.accessibleInstitutions)]
         );
         res.status(201).json(u);
     } catch (err) { res.status(500).json({ error: err.message }); }
