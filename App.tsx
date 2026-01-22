@@ -1,4 +1,4 @@
-
+//teste 
 import React, { useState, useEffect, useMemo } from 'react';
 import { User, Project, Role, ProjectStatus, VoteRecord, UserGroup, Institution, InstitutionStatus } from './types';
 import { StorageService } from './storage';
